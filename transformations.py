@@ -71,6 +71,27 @@ def inverse_box_cox_transform(y_transformed, lambda_ = 0):
     else:
         y_original_np = (y_transformed_np * lambda_ + 1) ** (1 / lambda_) - 1e-6
 
+class YeoJohnsonTransform(torch.nn.Module):
+    def __init__(self, lmbda=1.0):
+        super(YeoJohnsonTransform, self).__init__()
+        self.lmbda = lmbda
+
+    def forward(self, x):
+        pos_mask = (x >= 0).float()
+        neg_mask = (x < 0).float()
+        
+        if self.lmbda != 0:
+            pos_transformed = ((x + 1).pow(self.lmbda) - 1) / self.lmbda * pos_mask
+        else:
+            pos_transformed = torch.log(x + 1) * pos_mask
+        
+        if self.lmbda != 2:
+            neg_transformed = (-(torch.abs(x) + 1).pow(2 - self.lmbda) + 1) / (2 - self.lmbda) * neg_mask
+        else:
+            neg_transformed = -torch.log(torch.abs(x) + 1) * neg_mask
+        
+        return pos_transformed + neg_transformed
+
     y_original = torch.tensor(y_original_np)
     
     return y_original
